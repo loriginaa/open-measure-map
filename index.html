@@ -92,21 +92,94 @@
       .toast { bottom:calc(max(39%,196px) + 78px); }
     }
     @media (prefers-reduced-motion:reduce) { * { transition:none !important; } }
+
+    :root { --ink:#1c3136;--muted:#829a99;--accent:#167f7b;--line:#e5eeea;font-family:Inter,-apple-system,BlinkMacSystemFont,"SF Pro Display","PingFang SC","Microsoft YaHei",sans-serif }
+    .app{grid-template-columns:374px minmax(0,1fr);background:#eef4f1}
+    .panel{border-right:1px solid #e1ebe7;box-shadow:8px 0 38px #1b3e3210}
+    .brand{padding:29px 27px 24px;background:linear-gradient(145deg,#fff,#f6faf8);border-bottom:1px solid #eaf0ed}
+    .brand h1{font-size:23px;font-weight:820;letter-spacing:-1px;margin:13px 0}
+    .brand h1:before{content:"⌁";display:inline-grid;place-items:center;width:34px;height:34px;border-radius:10px;background:#167f7b;color:white;margin-right:9px;box-shadow:0 4px 12px #08666533;vertical-align:middle}
+    .eyebrow{color:#12817c;font-size:10px;letter-spacing:.15em}
+    .subtitle{font-size:12px;color:#8ca09b}
+    .content{padding:24px 25px}
+    .mode-tabs{display:grid;grid-template-columns:1fr 1fr;gap:5px;border:1px solid #e3ece8;border-radius:13px;background:#f0f6f3;padding:5px;margin-bottom:20px}
+    .mode-tab{min-height:41px;border:0;border-radius:9px;background:transparent;color:#7b918d;font-size:13px;font-weight:750}
+    .mode-tab.active{background:white;color:#147d78;box-shadow:0 2px 10px #153d2e17}
+    .distance-card{border-radius:18px;background:radial-gradient(ellipse at 100% -20%,#256a63,transparent 55%),linear-gradient(130deg,#193239,#0b282b);box-shadow:0 12px 24px #0f342a2a;padding:25px 23px 22px;position:relative;overflow:hidden}
+    .distance-card:after{content:"";position:absolute;width:155px;height:155px;border-radius:50%;border:1px solid #ffffff16;right:-80px;bottom:-100px;pointer-events:none}
+    .distance-label{display:flex;justify-content:space-between;gap:10px;align-items:center;font-size:10px;letter-spacing:.09em;color:#b6d7d0;font-weight:750}
+    .metric-live{font-size:9px;color:#87e9b9}
+    .distance-value{font-size:43px;font-weight:820;line-height:1.12;letter-spacing:-1.7px;margin:17px 0 12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .distance-foot{color:#9abeba;opacity:1;font-size:11px}
+    .perimeter-row{display:flex;justify-content:space-between;gap:12px;padding-top:12px;margin-top:13px;border-top:1px solid #ffffff20;font-size:11px;color:#c6ded7}
+    .perimeter-row[hidden]{display:none}.perimeter-row strong{color:#fff}
+    .action-row{grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:19px 0 24px}
+    .btn{min-height:43px;border:1px solid #e2ebe7;border-radius:11px;font-size:12px;font-weight:750;background:white;color:#4f6967;padding:0 5px}
+    .btn-primary{background:#e7f6ef;border-color:#d0ece0;color:#107a72}
+    .btn:hover:not(:disabled){background:#f0f8f4}
+    .section-header{margin:0 0 13px}
+    .section-title{font-size:13px;color:#304b46}
+    .count{background:#eef6f2;border-radius:50px;padding:5px 9px;color:#60867a;font-weight:700;font-size:11px}
+    .empty{display:flex;flex-direction:column;align-items:center;gap:8px;padding:25px 12px;border:1px dashed #c7dbd2;background:#f9fbfa;color:#8ba49a;font-size:11px}
+    .empty[hidden]{display:none}.empty strong{color:#43796d;font-size:13px}.empty-icon{font-size:34px;line-height:1;color:#6fb3a7}
+    .point-item{background:white;border-color:#e4eeea;padding:10px;border-radius:12px}
+    .index{background:#def3e9;color:#0f7f74;width:25px;height:25px}
+    .instructions{border-top:1px solid #edf1ee;padding-top:16px;margin-top:18px}
+    .tip-dot{background:#e5f5ee;color:#117d70}.tip{color:#8ea49e;font-size:11px}
+    .bottom{border-top:1px solid #e9efec}.bottom a{color:#198679}
+    .map-shell{isolation:isolate}
+    .map-tools{top:22px;right:22px;left:auto;border-radius:13px;border:1px solid #e2eae6;box-shadow:0 8px 24px #18352c1f;backdrop-filter:blur(12px);background:#ffffffed;padding:10px 13px}
+    .map-tools label{font-size:11px;color:#758b83}.map-tools select{color:#345b52;font-size:12px;font-weight:750}
+    .hint{top:auto;left:25px;bottom:25px;max-width:400px;background:#fffffff0;border:1px solid #e6eee8;color:#658b7d;font-size:11px}
+    .search-wrap{position:absolute;top:22px;left:23px;z-index:5;width:min(395px,calc(100% - 255px))}
+    .search-main{height:52px;display:flex;align-items:center;gap:10px;padding:0 16px;background:#fffffffa;border:1px solid #e2ebe6;border-radius:15px;box-shadow:0 8px 28px #16372c22}
+    .search-main:focus-within{outline:3px solid #48aa9822}
+    .search-icon{font-size:26px;color:#148679;line-height:1}
+    .search-main input{flex:1;min-width:0;background:transparent;border:0;outline:0;font-size:13px;font-weight:500;color:#30584d}
+    .search-main input::placeholder{color:#91a69e}.search-main input::-webkit-search-cancel-button{-webkit-appearance:none}
+    .kbd{font-size:11px;border:1px solid #e2ece7;background:#f2f7f4;border-radius:6px;padding:3px 7px;color:#9cafaa}
+    .search-results{background:white;border-radius:13px;box-shadow:0 14px 36px #173a2d29;margin-top:8px;border:1px solid #e2ebe7;overflow-y:auto;max-height:320px}
+    .search-results[hidden]{display:none}
+    .search-item{display:block;text-align:left;background:#fff;border:0;border-bottom:1px solid #e9f0ec;padding:12px 14px;width:100%;cursor:pointer}
+    .search-item:hover,.search-item:focus-visible{background:#f1f9f4}
+    .search-item:last-child{border:0}.search-item strong{display:block;color:#315e4f;font-size:12px}.search-item small{display:block;font-size:11px;color:#829b90;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .search-state{font-size:12px;color:#80998d;padding:16px}
+    .measure-marker{background:#137e75;height:30px;min-width:30px;border-color:white;box-shadow:0 3px 12px #184b3c5c}
+    .map-crosshair:before,.map-crosshair:after{background:#14897e;box-shadow:0 0 0 1px #14897e}
+    .floating-add{background:#128176;box-shadow:0 9px 28px #125b4d60;font-size:13px}
+    .maplibregl-ctrl-top-right{top:83px;right:12px}.maplibregl-ctrl-group{border-radius:12px!important;overflow:hidden;box-shadow:0 5px 18px #123a302e!important}
+    @media(max-width:780px){
+      .panel{max-height:43%;min-height:220px;border-radius:24px 24px 0 0;box-shadow:0 -8px 30px #1a3f3335;padding-bottom:env(safe-area-inset-bottom)}
+      .panel:before{content:"";position:absolute;left:50%;top:9px;transform:translateX(-50%);width:36px;height:4px;border-radius:4px;background:#d6e4dc}
+      .brand{background:white;padding:20px 18px 6px}.brand h1{font-size:14px}.brand h1:before{width:23px;height:23px;border-radius:7px;font-size:15px}
+      .content{padding:7px 17px 15px}.mode-tabs{margin:1px 0 10px;padding:3px}.mode-tab{min-height:33px;font-size:12px}
+      .distance-card{padding:14px 17px;border-radius:13px}.distance-label{font-size:9px}.distance-value{font-size:30px;margin:5px 0 3px}.distance-foot{display:block;font-size:10px}
+      .perimeter-row{padding-top:7px;margin-top:8px}.action-row{grid-template-columns:repeat(3,1fr);margin:10px 0 12px;gap:7px}.btn{min-height:37px;font-size:11px}
+      .section-header{margin:8px 0}.point-item{padding:6px}
+      .search-wrap{top:max(16px,env(safe-area-inset-top));left:13px;width:calc(100% - 100px)}
+      .search-main{height:47px;border-radius:13px;padding:0 12px}.search-main input{font-size:12px}.kbd{display:none}
+      .map-tools{top:calc(max(16px,env(safe-area-inset-top)) + 56px);left:13px;right:auto;padding:7px 10px}
+      .floating-add{bottom:calc(max(43%,220px) + 16px);min-width:170px;padding:13px 18px}
+      .maplibregl-ctrl-top-right{top:max(16px,env(safe-area-inset-top));right:9px}
+      .maplibregl-ctrl-bottom-right{bottom:calc(max(43%,220px) + 5px)}.toast{bottom:calc(max(43%,220px) + 80px)}
+    }
+
   </style>
 </head>
 <body>
   <main class="app">
     <aside class="panel" aria-label="测距操作面板">
       <header class="brand">
-        <div class="eyebrow">OPEN SOURCE MAP TOOL</div>
+        <div class="eyebrow">CARTOGRAPHIC TOOLS <span style="float:right;color:#a4b9b3;letter-spacing:0">OPEN SOURCE / V2</span></div>
         <h1>OpenMeasureMap</h1>
-        <p class="subtitle">保留地名，直接测量。简单的地图折线测距工具。</p>
+        <p class="subtitle">自由丈量每一段距离，保留每一处地名。</p>
       </header>
       <div class="content">
+        <div class="mode-tabs" role="group" aria-label="测量模式"><button type="button" id="mode-distance" class="mode-tab active" aria-pressed="true">↗ 距离测量</button><button type="button" id="mode-area" class="mode-tab" aria-pressed="false">⬡ 面积测量</button></div>
         <section class="distance-card" aria-label="总距离">
-          <div class="distance-label">总测量距离</div>
+          <div class="distance-label"><span id="metric-label">TOTAL DISTANCE · 总测量距离</span><span class="metric-live">● LIVE</span></div>
           <div class="distance-value" id="total">0 m</div>
-          <div class="distance-foot" id="summary">添加至少两个测量点后显示距离</div>
+          <div class="distance-foot" id="summary">添加至少两个测量点后显示距离</div><div id="perimeter-row" class="perimeter-row" hidden><span>边界周长</span><strong id="perimeter">0 m</strong></div>
         </section>
         <nav class="action-row" aria-label="测距操作">
           <button class="btn btn-primary" type="button" id="add">＋ 加点</button>
@@ -117,7 +190,7 @@
           <button class="btn" type="button" id="unit">米 / 千米</button>
         </nav>
         <div class="section-header"><span class="section-title">测量点</span><span class="count" id="count">0 个点</span></div>
-        <div class="empty" id="empty">电脑：点击地图选点<br>手机：移动准星，点击“添加测量点”</div>
+        <div class="empty" id="empty"><span class="empty-icon">⌖</span><strong>从地图开始测量</strong><span>电脑直接点击地图选点<br>手机移动准星后点击添加</span></div>
         <ol class="points" id="points" aria-live="polite"></ol>
         <div class="instructions">
           <div class="tip"><span class="tip-dot">1</span><span>地图的地名和道路标注始终保留。</span></div>
@@ -129,6 +202,7 @@
     </aside>
     <section class="map-shell" aria-label="交互式地图">
       <div id="map"></div>
+      <div class="search-wrap" id="search-wrap"><div class="search-main"><span class="search-icon" aria-hidden="true">⌕</span><input type="search" id="search-input" aria-label="搜索地点" placeholder="搜索地名、道路或地址…" autocomplete="off"><span class="kbd">↵</span></div><div class="search-results" id="search-results" role="listbox" hidden></div></div>
       <div class="map-tools"><label for="style">底图</label><select id="style"><option value="liberty">标准地图</option><option value="bright">明亮地图</option><option value="positron">简洁地图</option><option value="dark">深色地图</option></select></div>
       <div class="hint">点击地图添加点 · 拖动蓝色圆点调整位置</div>
       <div class="map-crosshair" aria-hidden="true"></div>
