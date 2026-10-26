@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f6f8fa">
+  <meta name="description" content="在保留地名和地图标注的同时，轻松测量地图上的直线和折线距离。">
+  <title>OpenMeasureMap · 地图测距</title>
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@6.11.2/dist/maplibre-gl.css">
+  <style>
+    :root { color-scheme: light; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; --ink:#192b35; --muted:#687985; --accent:#1767e8; --line:#e7ecf0; --surface:#fff; }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; overflow: hidden; }
+    button, select { font: inherit; }
+    button { cursor: pointer; }
+    button:focus-visible, select:focus-visible { outline: 3px solid #95bfff; outline-offset: 2px; }
+    .app { display: grid; grid-template-columns: 338px minmax(0,1fr); width: 100%; height: 100%; background:#f7f9fb; }
+    .panel { display:flex; flex-direction:column; background:var(--surface); box-shadow:3px 0 25px rgba(26,53,69,.07); z-index:3; min-height:0; }
+    .brand { padding: 26px 24px 18px; border-bottom:1px solid var(--line); }
+    .eyebrow { letter-spacing:.16em; font-size:10px; font-weight:800; color:var(--accent); text-transform:uppercase; }
+    h1 { font-size:23px; letter-spacing:-.7px; margin:7px 0 7px; font-weight:750; }
+    .subtitle { margin:0; font-size:13px; line-height:1.65; color:var(--muted); }
+    .content { padding:20px 22px 14px; overflow:auto; flex:1; }
+    .distance-card { background:linear-gradient(130deg,#115dca,#327af4); color:#fff; border-radius:17px; padding:21px 20px; box-shadow:0 10px 20px rgba(33,103,218,.16); }
+    .distance-label { font-size:12px; color:#e3edff; font-weight:550; }
+    .distance-value { font-size:37px; font-weight:780; letter-spacing:-1.2px; margin:8px 0 4px; font-variant-numeric:tabular-nums; }
+    .distance-foot { opacity:.83; font-size:11px; }
+    .action-row { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:15px 0; }
+    .btn { min-height:41px; background:#fff; color:var(--ink); border:1px solid #dce5eb; border-radius:10px; padding:0 13px; font-size:13px; font-weight:650; display:inline-flex; justify-content:center; align-items:center; gap:7px; transition:background .15s,transform .15s; }
+    .btn:hover:not(:disabled) { background:#f4f7fb; }
+    .btn:active:not(:disabled) { transform:scale(.98); }
+    .btn:disabled { opacity:.44; cursor:not-allowed; }
+    .btn-primary { background:#edf4ff; border-color:#d5e4ff; color:#115ec8; }
+    .btn-primary:hover:not(:disabled) { background:#e1edff; }
+    .section-header { display:flex; justify-content:space-between; align-items:center; margin:20px 0 11px; }
+    .section-title { font-size:13px; font-weight:760; }
+    .count { font-size:12px; color:var(--muted); }
+    .empty { border:1px dashed #d3dfe7; border-radius:13px; color:#82929c; font-size:12px; line-height:1.8; padding:22px 15px; text-align:center; }
+    .points { padding:0; list-style:none; margin:0; display:grid; gap:7px; }
+    .point-item { display:grid; grid-template-columns:24px minmax(0,1fr) 30px; align-items:center; gap:9px; padding:9px 7px 9px 9px; background:#f7f9fc; border:1px solid #eef1f5; border-radius:11px; }
+    .index { display:grid; place-items:center; height:23px; width:23px; background:#e4eefd; color:var(--accent); font-size:11px; border-radius:50%; font-weight:800; }
+    .point-title { font-size:12px; font-weight:680; }
+    .point-sub { font-size:11px; color:var(--muted); margin-top:3px; font-variant-numeric:tabular-nums; }
+    .remove { border:0; background:transparent; border-radius:8px; font-size:18px; color:#87949e; height:29px; width:29px; }
+    .remove:hover { background:#e8eef5; color:#cb4153; }
+    .instructions { display:grid; gap:8px; margin-top:17px; }
+    .tip { display:flex; gap:9px; font-size:12px; color:#6f808a; align-items:flex-start; line-height:1.55; }
+    .tip-dot { flex:none; background:#e9f1fd; color:var(--accent); font-weight:750; font-size:11px; width:19px; height:19px; display:grid; place-items:center; border-radius:6px; }
+    .bottom { padding:13px 22px 17px; border-top:1px solid var(--line); }
+    .bottom-row { display:flex; justify-content:space-between; gap:12px; align-items:center; }
+    .small { font-size:11px; color:#81909c; }
+    .bottom a { color:#426fbe; text-decoration:none; }
+    .map-shell { min-height:0; position:relative; }
+    #map { position:absolute; inset:0; }
+    .map-tools { position:absolute; z-index:2; top:19px; left:18px; display:flex; align-items:center; gap:8px; padding:7px 9px; border:1px solid #e4ebf1; background:rgba(255,255,255,.97); box-shadow:0 5px 20px rgba(28,51,71,.11); border-radius:12px; }
+    .map-tools label { font-size:12px; font-weight:700; color:#526672; }
+    .map-tools select { background:transparent; border:none; padding:4px 18px 4px 3px; color:var(--ink); font-size:12px; max-width:115px; }
+    .hint { position:absolute; z-index:2; top:19px; left:208px; padding:12px 14px; background:rgba(255,255,255,.94); border-radius:12px; box-shadow:0 5px 20px rgba(28,51,71,.08); font-size:12px; color:#637681; max-width:320px; pointer-events:none; }
+    .map-crosshair { display:none; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); z-index:2; width:28px; height:28px; pointer-events:none; }
+    .map-crosshair:before, .map-crosshair:after { content:""; position:absolute; background:#1767e8; border:1px solid #fff; border-radius:5px; box-shadow:0 0 0 1px #1767e8; }
+    .map-crosshair:before { width:2px; height:27px; left:12px; }
+    .map-crosshair:after { width:27px; height:2px; top:12px; }
+    .floating-add { display:none; position:absolute; bottom:228px; left:50%; transform:translateX(-50%); z-index:2; min-width:150px; padding:14px 17px; font-weight:750; background:var(--accent); border:0; color:white; border-radius:999px; box-shadow:0 6px 21px rgba(31,93,198,.36); }
+    .measure-marker { display:grid; place-items:center; height:27px; min-width:27px; padding:0 6px; border:3px solid white; border-radius:50%; background:#1767e8; color:white; font-size:11px; font-weight:750; box-shadow:0 2px 8px rgba(0,0,0,.25); cursor:grab; user-select:none; }
+    .measure-marker:active { cursor:grabbing; }
+    .maplibregl-ctrl-bottom-right { bottom:8px; }
+    .toast { position:absolute; z-index:5; bottom:30px; left:50%; transform:translateX(-50%); background:#172e42; color:white; font-size:12px; padding:12px 16px; border-radius:11px; box-shadow:0 8px 20px #1e354744; opacity:0; pointer-events:none; transition:opacity .2s; text-align:center; max-width:90%; }
+    .toast.show { opacity:1; }
+    @media (max-width:780px) {
+      .app { display:block; }
+      .map-shell { position:absolute; inset:0; }
+      .panel { position:absolute; z-index:3; bottom:0; left:0; right:0; border-radius:22px 22px 0 0; max-height:39%; min-height:196px; box-shadow:0 -5px 30px rgba(25,48,66,.18); }
+      .brand { padding:15px 19px 8px; border:none; }
+      .brand h1 { font-size:17px; margin:0; }
+      .eyebrow,.subtitle { display:none; }
+      .content { padding:7px 17px 11px; }
+      .distance-card { padding:12px 16px; border-radius:13px; }
+      .distance-value { font-size:26px; margin:1px 0; }
+      .distance-foot { display:none; }
+      .action-row { margin:10px 0; grid-template-columns:repeat(4,1fr); gap:6px; }
+      .btn { min-height:36px; padding:0 7px; font-size:12px; }
+      .section-header { margin:8px 0; }
+      .points { gap:4px; }
+      .point-item { padding:4px 6px; }
+      .instructions,.bottom { display:none; }
+      .map-tools { top:max(15px, env(safe-area-inset-top)); left:13px; }
+      .hint { display:none; }
+      .map-crosshair,.floating-add { display:block; }
+      .floating-add { bottom:calc(max(39%,196px) + 14px); }
+      .maplibregl-ctrl-top-right { top:53px; }
+      .maplibregl-ctrl-bottom-right { bottom:calc(max(39%,196px) + 8px); }
+      .toast { bottom:calc(max(39%,196px) + 78px); }
+    }
+    @media (prefers-reduced-motion:reduce) { * { transition:none !important; } }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <aside class="panel" aria-label="测距操作面板">
+      <header class="brand">
+        <div class="eyebrow">OPEN SOURCE MAP TOOL</div>
+        <h1>OpenMeasureMap</h1>
+        <p class="subtitle">保留地名，直接测量。简单的地图折线测距工具。</p>
+      </header>
+      <div class="content">
+        <section class="distance-card" aria-label="总距离">
+          <div class="distance-label">总测量距离</div>
+          <div class="distance-value" id="total">0 m</div>
+          <div class="distance-foot" id="summary">添加至少两个测量点后显示距离</div>
+        </section>
+        <nav class="action-row" aria-label="测距操作">
+          <button class="btn btn-primary" type="button" id="add">＋ 加点</button>
+          <button class="btn" type="button" id="undo">↶ 撤销</button>
+          <button class="btn" type="button" id="fit">◎ 查看全部</button>
+          <button class="btn" type="button" id="share">↗ 分享</button>
+          <button class="btn" type="button" id="clear">× 清空</button>
+          <button class="btn" type="button" id="unit">米 / 千米</button>
+        </nav>
+        <div class="section-header"><span class="section-title">测量点</span><span class="count" id="count">0 个点</span></div>
+        <div class="empty" id="empty">电脑：点击地图选点<br>手机：移动准星，点击“添加测量点”</div>
+        <ol class="points" id="points" aria-live="polite"></ol>
+        <div class="instructions">
+          <div class="tip"><span class="tip-dot">1</span><span>地图的地名和道路标注始终保留。</span></div>
+          <div class="tip"><span class="tip-dot">2</span><span>拖动蓝色测量点，可以随时调整位置。</span></div>
+          <div class="tip"><span class="tip-dot">3</span><span>距离是点之间的地表近似最短距离，不是沿道路导航距离。</span></div>
+        </div>
+      </div>
+      <footer class="bottom"><div class="bottom-row"><span class="small">MapLibre · OpenFreeMap · © OpenStreetMap contributors</span><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">数据署名</a></div></footer>
+    </aside>
+    <section class="map-shell" aria-label="交互式地图">
+      <div id="map"></div>
+      <div class="map-tools"><label for="style">底图</label><select id="style"><option value="liberty">标准地图</option><option value="bright">明亮地图</option><option value="positron">简洁地图</option><option value="dark">深色地图</option></select></div>
+      <div class="hint">点击地图添加点 · 拖动蓝色圆点调整位置</div>
+      <div class="map-crosshair" aria-hidden="true"></div>
+      <button class="floating-add" id="mobile-add" type="button">＋ 添加测量点</button>
+      <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    </section>
+  </main>
+  <script type="module">
+    import * as maplibregl from 'https://unpkg.com/maplibre-gl@6.11.2/dist/maplibre-gl.mjs';
+
+    const $ = id => document.getElementById(id);
+    const STORAGE_KEY = 'openmeasuremap-points-v1';
+    const STYLES = {
+      liberty: 'https://tiles.openfreemap.org/styles/liberty',
+      bright: 'https://tiles.openfreemap.org/styles/bright',
+      positron: 'https://tiles.openfreemap.org/styles/positron',
+      dark: 'https://tiles.openfreemap.org/styles/dark'
+    };
+    let points = [];
+    let markers = [];
+    let unitMode = 'auto';
+    let toastTimer;
+
+    function validPoint(p) {
+      return Array.isArray(p) && p.length === 2 && p.every(Number.isFinite) && p[0] >= -180 && p[0] <= 180 && p[1] >= -90 && p[1] <= 90;
+    }
+
+    function readSharedPoints() {
+      const encoded = new URLSearchParams(location.search).get('p');
+      if (!encoded) return null;
+      const parsed = encoded.split(';').slice(0, 100).map(pair => pair.split(',').map(Number));
+      return parsed.every(validPoint) ? parsed : null;
+    }
+
+    const shared = readSharedPoints();
+    if (shared) {
+      points = shared;
+    } else {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        if (Array.isArray(saved) && saved.length <= 100 && saved.every(validPoint)) points = saved;
+      } catch (_) {}
+    }
+
+    const map = new maplibregl.Map({
+      container: 'map',
+      style: STYLES.liberty,
+      center: points.length ? points[0] : [112.146, 32.016],
+      zoom: points.length ? 13 : 12.8,
+      attributionControl: false
+    });
+    map.addControl(new maplibregl.NavigationControl({showCompass:false}), 'top-right');
+    map.addControl(new maplibregl.AttributionControl({compact:true}), 'bottom-right');
+
+    function distanceMeters(a, b) {
+      const radians = n => n * Math.PI / 180;
+      const lat1 = radians(a[1]);
+      const lat2 = radians(b[1]);
+      const deltaLat = lat2 - lat1;
+      const deltaLng = radians(b[0] - a[0]);
+      const h = Math.sin(deltaLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(deltaLng / 2) ** 2;
+      return 6371008.8 * 2 * Math.atan2(Math.sqrt(Math.min(1, h)), Math.sqrt(Math.max(0, 1 - h)));
+    }
+
+    function formatDistance(meters) {
+      if (unitMode === 'km' || (unitMode === 'auto' && meters >= 1000)) return (meters / 1000).toLocaleString('zh-CN', {maximumFractionDigits:3}) + ' km';
+      return Math.round(meters).toLocaleString('zh-CN') + ' m';
+    }
+
+    function lineData() {
+      return {type:'FeatureCollection', features:points.length >= 2 ? [{type:'Feature',properties:{},geometry:{type:'LineString',coordinates:points}}] : []};
+    }
+
+    function syncLine() {
+      if (map.getSource('measure-line')) map.getSource('measure-line').setData(lineData());
+    }
+
+    map.on('style.load', () => {
+      if (!map.getSource('measure-line')) map.addSource('measure-line', {type:'geojson',data:lineData()});
+      if (!map.getLayer('measure-outline')) map.addLayer({id:'measure-outline',type:'line',source:'measure-line',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#fff','line-width':7}});
+      if (!map.getLayer('measure-stroke')) map.addLayer({id:'measure-stroke',type:'line',source:'measure-line',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#1767e8','line-width':4}});
+    });
+
+    function persist() {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(points)); } catch (_) {}
+    }
+
+    function updateNumbers() {
+      let total = 0;
+      const list = $('points');
+      list.replaceChildren();
+      points.forEach((p,i) => {
+        const length = i ? distanceMeters(points[i-1],p) : 0;
+        total += length;
+        const item = document.createElement('li');
+        item.className = 'point-item';
+        const badge = document.createElement('span');
+        badge.className = 'index';
+        badge.textContent = String(i+1);
+        const body = document.createElement('div');
+        const headline = document.createElement('div');
+        headline.className = 'point-title';
+        headline.textContent = i === 0 ? '起点' : `第 ${i} 段 · ${formatDistance(length)}`;
+        const small = document.createElement('div');
+        small.className = 'point-sub';
+        small.textContent = `${p[1].toFixed(5)}, ${p[0].toFixed(5)}`;
+        body.append(headline, small);
+        const remove = document.createElement('button');
+        remove.className = 'remove';
+        remove.type = 'button';
+        remove.textContent = '×';
+        remove.setAttribute('aria-label', `删除第 ${i+1} 个点`);
+        remove.onclick = () => { points.splice(i,1); render(); };
+        item.append(badge,body,remove);
+        list.append(item);
+      });
+      $('total').textContent = formatDistance(total);
+      $('summary').textContent = points.length >= 2 ? `${points.length} 个测量点 · ${points.length-1} 段折线` : '添加至少两个测量点后显示距离';
+      $('count').textContent = `${points.length} 个点`;
+      $('empty').hidden = points.length > 0;
+      $('undo').disabled = points.length === 0;
+      $('clear').disabled = points.length === 0;
+      $('fit').disabled = points.length === 0;
+      $('share').disabled = points.length === 0;
+    }
+
+    function redrawMarkers() {
+      markers.forEach(marker => marker.remove());
+      markers = points.map((p,i) => {
+        const element = document.createElement('div');
+        element.className = 'measure-marker';
+        element.textContent = String(i+1);
+        element.title = `拖动第 ${i+1} 个测量点`;
+        element.addEventListener('click', event => event.stopPropagation());
+        const marker = new maplibregl.Marker({element,draggable:true,anchor:'center'}).setLngLat(p).addTo(map);
+        marker.on('drag', () => {
+          const location = marker.getLngLat();
+          points[i] = [location.lng,location.lat];
+          syncLine();
+          updateNumbers();
+        });
+        marker.on('dragend', persist);
+        return marker;
+      });
+    }
+
+    function render() {
+      redrawMarkers();
+      syncLine();
+      updateNumbers();
+      persist();
+    }
+
+    function addPoint(position) {
+      if (points.length >= 100) return toast('最多允许 100 个测量点');
+      points.push([position.lng,position.lat]);
+      render();
+    }
+
+    function addCenter() { addPoint(map.getCenter()); }
+
+    function fitPoints() {
+      if (!points.length) return;
+      if (points.length === 1) { map.easeTo({center:points[0],zoom:Math.max(13,map.getZoom())}); return; }
+      const bounds = points.reduce((b,p) => b.extend(p),new maplibregl.LngLatBounds(points[0],points[0]));
+      map.fitBounds(bounds,{padding:window.innerWidth <= 780 ? {top:65,bottom:280,left:40,right:40} : 90,maxZoom:16,duration:450});
+    }
+
+    function toast(message) {
+      const el = $('toast');
+      el.textContent = message;
+      el.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => el.classList.remove('show'),2500);
+    }
+
+    async function share() {
+      const url = new URL(location.href);
+      url.searchParams.set('p',points.map(p => `${p[0].toFixed(6)},${p[1].toFixed(6)}`).join(';'));
+      url.hash = '';
+      try {
+        await navigator.clipboard.writeText(url.toString());
+        toast('测量链接已复制，可以发给其他人');
+      } catch (_) {
+        window.prompt('复制下面的测量链接', url.toString());
+      }
+    }
+
+    $('add').onclick = addCenter;
+    $('mobile-add').onclick = addCenter;
+    $('undo').onclick = () => { if(points.length) { points.pop(); render(); } };
+    $('clear').onclick = () => { points=[]; render(); };
+    $('fit').onclick = fitPoints;
+    $('share').onclick = share;
+    $('unit').onclick = () => { unitMode = unitMode === 'auto' ? 'km' : 'auto'; $('unit').textContent = unitMode === 'auto' ? '米 / 千米' : '全部 km'; updateNumbers(); };
+    $('style').onchange = event => map.setStyle(STYLES[event.target.value]);
+    map.on('click',event => { if (matchMedia('(pointer:fine)').matches) addPoint(event.lngLat); });
+    document.addEventListener('keydown',event => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z' && points.length) { event.preventDefault(); points.pop(); render(); }
+    });
+    map.on('error', event => {
+      if (event.error && !map.isStyleLoaded()) console.warn('地图资源加载失败：',event.error.message);
+    });
+    render();
+    map.once('load',() => { if (points.length > 1) fitPoints(); });
+  </script>
+</body>
+</html>
