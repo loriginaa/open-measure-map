@@ -224,6 +224,9 @@
     let points = [];
     let markers = [];
     let unitMode = 'auto';
+    let measureMode = 'distance';
+    let searchTimer;
+    let searchAbort;
     let toastTimer;
 
     function validPoint(p) {
@@ -272,15 +275,21 @@
       return Math.round(meters).toLocaleString('zh-CN') + ' m';
     }
 
+    function areaMeters(){ if(points.length<3)return 0;const radius=6371008.8,rad=Math.PI/180;let sum=0;for(let i=0;i<points.length;i++){const a=points[i],b=points[(i+1)%points.length];let d=(b[0]-a[0])*rad;if(d>Math.PI)d-=2*Math.PI;if(d< -Math.PI)d+=2*Math.PI;sum+=d*(2+Math.sin(a[1]*rad)+Math.sin(b[1]*rad));}const area=Math.abs(sum)*radius*radius/2;return Math.min(area,4*Math.PI*radius*radius-area);}
+    function formatArea(a){return a>=1e6?(a/1e6).toLocaleString('zh-CN',{maximumFractionDigits:3})+' km²':Math.round(a).toLocaleString('zh-CN')+' m²';}
+    function areaData(){return {type:'FeatureCollection',features:measureMode==='area'&&points.length>=3?[{type:'Feature',properties:{},geometry:{type:'Polygon',coordinates:[[...points,points[0]]]}}]:[]};}
     function lineData() {
-      return {type:'FeatureCollection', features:points.length >= 2 ? [{type:'Feature',properties:{},geometry:{type:'LineString',coordinates:points}}] : []};
+      return {type:'FeatureCollection', features:points.length >= 2 ? [{type:'Feature',properties:{},geometry:{type:'LineString',coordinates:measureMode==='area'&&points.length>=3?[...points,points[0]]:points}}] : []};
     }
 
     function syncLine() {
       if (map.getSource('measure-line')) map.getSource('measure-line').setData(lineData());
+      if (map.getSource('measure-area')) map.getSource('measure-area').setData(areaData());
     }
 
     map.on('style.load', () => {
+      map.addSource('measure-area',{type:'geojson',data:areaData()});
+      map.addLayer({id:'measure-fill',type:'fill',source:'measure-area',paint:{'fill-color':'#118d83','fill-opacity':0.2}});
       if (!map.getSource('measure-line')) map.addSource('measure-line', {type:'geojson',data:lineData()});
       if (!map.getLayer('measure-outline')) map.addLayer({id:'measure-outline',type:'line',source:'measure-line',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#fff','line-width':7}});
       if (!map.getLayer('measure-stroke')) map.addLayer({id:'measure-stroke',type:'line',source:'measure-line',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#1767e8','line-width':4}});
@@ -319,8 +328,18 @@
         item.append(badge,body,remove);
         list.append(item);
       });
-      $('total').textContent = formatDistance(total);
-      $('summary').textContent = points.length >= 2 ? `${points.length} 个测量点 · ${points.length-1} 段折线` : '添加至少两个测量点后显示距离';
+      if(measureMode==='area'){
+        $('total').textContent=formatArea(areaMeters());
+        $('metric-label').textContent='TOTAL AREA · 测量面积';
+        $('summary').textContent=points.length>=3?`${points.length} 个顶点 · 封闭区域`:'添加至少三个点形成区域';
+        $('perimeter-row').hidden=points.length<3;
+        $('perimeter').textContent=formatDistance(total+(points.length>=3?distanceMeters(points.at(-1),points[0]):0));
+      }else{
+        $('total').textContent = formatDistance(total);
+        $('metric-label').textContent='TOTAL DISTANCE · 总测量距离';
+        $('summary').textContent = points.length >= 2 ? `${points.length} 个测量点 · ${points.length-1} 段折线` : '添加至少两个测量点后显示距离';
+        $('perimeter-row').hidden=true;
+      }
       $('count').textContent = `${points.length} 个点`;
       $('empty').hidden = points.length > 0;
       $('undo').disabled = points.length === 0;
@@ -358,7 +377,7 @@
 
     function addPoint(position) {
       if (points.length >= 100) return toast('最多允许 100 个测量点');
-      points.push([position.lng,position.lat]);
+      points.push(Array.isArray(position)?position:[position.lng,position.lat]);
       render();
     }
 
@@ -382,6 +401,7 @@
     async function share() {
       const url = new URL(location.href);
       url.searchParams.set('p',points.map(p => `${p[0].toFixed(6)},${p[1].toFixed(6)}`).join(';'));
+      url.searchParams.set('mode',measureMode);
       url.hash = '';
       try {
         await navigator.clipboard.writeText(url.toString());
@@ -391,6 +411,15 @@
       }
     }
 
+    function setMode(mode){measureMode=mode;for(const name of ['distance','area']){$('mode-'+name).classList.toggle('active',name===mode);$('mode-'+name).setAttribute('aria-pressed',String(name===mode));}syncLine();updateNumbers();}
+    $('mode-distance').onclick=()=>setMode('distance');
+    $('mode-area').onclick=()=>setMode('area');
+    const searchInput=$('search-input'), searchResults=$('search-results');
+    function searchMessage(message){searchResults.replaceChildren();const el=document.createElement('div');el.className='search-status';el.textContent=message;searchResults.append(el);searchResults.hidden=false;}
+    async function searchPlace(){const q=searchInput.value.trim();if(q.length<2){searchResults.hidden=true;return;}searchAbort?.abort();searchAbort=new AbortController();const url=new URL('https://photon.komoot.io/api/');url.searchParams.set('q',q);url.searchParams.set('limit','5');url.searchParams.set('lang','zh');searchMessage('正在搜索…');try{const response=await fetch(url,{signal:searchAbort.signal});if(!response.ok)throw Error('search unavailable');const data=await response.json();if(searchInput.value.trim()!==q)return;searchResults.replaceChildren();for(const feature of (data.features||[]).slice(0,5)){const coord=feature.geometry?.coordinates;if(!validPoint(coord))continue;const p=feature.properties||{};const button=document.createElement('button');button.type='button';button.className='search-result';const name=document.createElement('strong');name.textContent=p.name||p.city||'未命名地点';const detail=document.createElement('small');detail.textContent=[p.city,p.state,p.country].filter(Boolean).join(' · ');button.append(name,detail);button.onclick=()=>{map.flyTo({center:coord,zoom:Math.max(14,map.getZoom())});addPoint(coord);searchInput.value=name.textContent;searchResults.hidden=true;searchInput.blur();toast('已找到地点并添加测量点');};searchResults.append(button);}if(!searchResults.children.length)searchMessage('未找到地点');else searchResults.hidden=false;}catch(e){if(e.name!=='AbortError')searchMessage('搜索暂不可用，可直接在地图选点');}}
+    searchInput.addEventListener('input',()=>{clearTimeout(searchTimer);searchAbort?.abort();if(searchInput.value.trim().length<2){searchResults.hidden=true;return;}searchTimer=setTimeout(searchPlace,500);});
+    searchInput.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();clearTimeout(searchTimer);searchPlace();}if(e.key==='Escape')searchResults.hidden=true;});
+    document.addEventListener('pointerdown',e=>{if(!$('search-wrap').contains(e.target))searchResults.hidden=true;});
     $('add').onclick = addCenter;
     $('mobile-add').onclick = addCenter;
     $('undo').onclick = () => { if(points.length) { points.pop(); render(); } };
@@ -406,6 +435,7 @@
     map.on('error', event => {
       if (event.error && !map.isStyleLoaded()) console.warn('地图资源加载失败：',event.error.message);
     });
+    if(new URLSearchParams(location.search).get('mode')==='area')setMode('area');
     render();
     map.once('load',() => { if (points.length > 1) fitPoints(); });
   </script>
